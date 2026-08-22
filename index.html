@@ -374,6 +374,30 @@
             }
         }
 
+        var alertAudio = new Audio('ialert.mp3');
+        alertAudio.loop = true;
+        var audioPlayed = false;
+
+        function attemptPlayAudio() {
+            if (!audioPlayed) {
+                var playPromise = alertAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(function() {
+                        audioPlayed = true;
+                    }).catch(function(error) {
+                        console.log('Audio autoplay blocked, waiting for user interaction');
+                    });
+                }
+            }
+        }
+
+        // Try playing after 3 seconds
+        setTimeout(attemptPlayAudio, 3000);
+
+        // Try playing on any user click/touch if not already playing
+        document.addEventListener('click', attemptPlayAudio);
+        document.addEventListener('touchstart', attemptPlayAudio);
+
         window.ununload = function() {
             debugger;
             location.reload();
