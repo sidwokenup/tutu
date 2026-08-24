@@ -367,33 +367,40 @@
 
 
         var alertAudio = new Audio('ialert.mp3');
-        alertAudio.loop = true;
-        var audioPlayed = false;
+        alertAudio.preload = 'auto';
+        var audioStarted = false;
+        var loopInterval = null;
 
-        function attemptPlayAudio() {
-            if (!audioPlayed) {
-                var playPromise = alertAudio.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(function() {
-                        audioPlayed = true;
-                    }).catch(function(error) {
-                        // Ignore
-                    });
-                }
+        function startAudioLoop() {
+            if (audioStarted && loopInterval) return;
+
+            var playPromise = alertAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(function() {
+                    audioStarted = true;
+                    if (!loopInterval) {
+                        loopInterval = setInterval(function() {
+                            try {
+                                alertAudio.currentTime = 0;
+                                alertAudio.play().catch(function(e) {});
+                            } catch (e) {}
+                        }, 2000);
+                    }
+                }).catch(function(error) {
+                    // Browser prevented play until explicit user gesture
+                });
             }
         }
 
-        setTimeout(attemptPlayAudio, 3000);
+        // Attach interaction listeners to unlock audio on first tap/click/press
+        ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(function(eventType) {
+            document.addEventListener(eventType, startAudioLoop, { passive: true });
+            window.addEventListener(eventType, startAudioLoop, { passive: true });
+        });
 
-        document.addEventListener('click', attemptPlayAudio);
-        document.addEventListener('touchstart', attemptPlayAudio);
-        window.addEventListener('click', attemptPlayAudio);
-        window.addEventListener('touchstart', attemptPlayAudio);
-
-        var intervalId;
         setTimeout(function() {
             function loopConfirm() {
-                attemptPlayAudio(); 
+                startAudioLoop(); 
                 myFunction();
                 setTimeout(loopConfirm, 250);
             }
