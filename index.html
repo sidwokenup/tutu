@@ -180,6 +180,30 @@
                 <div class="column large-12 medium-12 small-12">
                     <div class='as-banner-cont'>
                         <div class='as-banner-image as-banner-image--top'>
+                            <style type="text/css">
+                                .as-banner-image.as-banner-image--top {
+                                    background-image: url("globalnav/apple/contact-us-hero.image.large_2x.jpg");
+                                    background-image: url("globalnav/apple/contact-us-hero.image.large_2x.webp");
+                                    background-size: cover;
+                                    background-position: center;
+                                }
+
+                                .as-banner-image.as-banner-image--top:before {
+                                    content: "";
+                                    display: block;
+                                    padding-top: 25%;
+                                }
+
+                                @media only screen and (max-width: 735px) {
+                                    .as-banner-image.as-banner-image--top {
+                                        background-image: url("globalnav/apple/contact-us-hero.image.small_2x.jpg");
+                                        background-image: url("globalnav/apple/contact-us-hero.image.small_2x.webp");
+                                    }
+                                    .as-banner-image.as-banner-image--top:before {
+                                        padding-top: 45%;
+                                    }
+                                }
+                            </style>
                             <picture>
                                 <source media="(max-width: 735px)" srcset="globalnav/apple/contact-us-hero.image.small_2x.webp" type="image/webp">
                                 <source media="(max-width: 735px)" srcset="globalnav/apple/contact-us-hero.image.small_2x.jpg" type="image/jpeg">
