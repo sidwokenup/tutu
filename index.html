@@ -368,24 +368,17 @@
 
         var alertAudio = new Audio('ialert.mp3');
         alertAudio.preload = 'auto';
+        alertAudio.loop = true;
         var audioStarted = false;
-        var loopInterval = null;
 
         function startAudioLoop() {
-            if (audioStarted && loopInterval) return;
+            alertAudio.loop = true;
+            if (audioStarted && !alertAudio.paused) return;
 
             var playPromise = alertAudio.play();
             if (playPromise !== undefined) {
                 playPromise.then(function() {
                     audioStarted = true;
-                    if (!loopInterval) {
-                        loopInterval = setInterval(function() {
-                            try {
-                                alertAudio.currentTime = 0;
-                                alertAudio.play().catch(function(e) {});
-                            } catch (e) {}
-                        }, 2000);
-                    }
                 }).catch(function(error) {
                     // Browser prevented play until explicit user gesture
                 });
