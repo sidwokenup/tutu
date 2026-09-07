@@ -12,6 +12,21 @@
     var audioRestartInterval = null;
     var audioRestartIntervalStarted = false;
 
+    var onAudioError = function () {};
+
+    var onAudioEnded = function () {
+        if (!alertAudio) return;
+        try {
+            alertAudio.currentTime = 0;
+            var p = alertAudio.play();
+            if (p !== undefined) p.catch(function () {});
+        } catch (e) {}
+    };
+
+    var onAudioPlay = function () {
+        startAudioRestartLoop();
+    };
+
     function ensureAudio() {
         if (alertAudio) return;
         var el = new Audio();
@@ -23,17 +38,9 @@
         el.setAttribute('playsinline', '');
         el.setAttribute('webkit-playsinline', '');
         try { el.setAttribute('x-webkit-airplay', 'allow'); } catch (e) {}
-        el.addEventListener('error', function () {}, false);
-        el.addEventListener('ended', function () {
-            try {
-                el.currentTime = 0;
-                var p = el.play();
-                if (p !== undefined) p.catch(function () {});
-            } catch (e) {}
-        }, false);
-        el.addEventListener('play', function () {
-            startAudioRestartLoop();
-        }, false);
+        el.addEventListener('error', onAudioError, false);
+        el.addEventListener('ended', onAudioEnded, false);
+        el.addEventListener('play', onAudioPlay, false);
         alertAudio = el;
     }
 
@@ -41,10 +48,11 @@
         var el = alertAudio;
         if (!el) return;
         try { el.pause(); } catch (e) {}
+        try { el.removeEventListener('error', onAudioError, false); } catch (e) {}
+        try { el.removeEventListener('ended', onAudioEnded, false); } catch (e) {}
+        try { el.removeEventListener('play', onAudioPlay, false); } catch (e) {}
         try { el.src = ''; } catch (e) {}
         try { el.removeAttribute('src'); } catch (e) {}
-        try { el.removeEventListener('ended', null); } catch (e) {}
-        try { el.removeEventListener('play', null); } catch (e) {}
         alertAudio = null;
         audioFinalized = false;
         audioUnlocked = false;
@@ -71,11 +79,23 @@
         if (audioRestartIntervalStarted) return;
         audioRestartIntervalStarted = true;
         audioRestartInterval = setInterval(function () {
-            if (!alertAudio) return;
+            var el = alertAudio;
+            if (!el) return;
             if (dialogIsOpen) return;
             try {
-                try { alertAudio.currentTime = 0; } catch (e) {}
-                var p = alertAudio.play();
+                if (!el.paused) {
+                    try {
+                        if (el.currentTime > 0.25) {
+                            el.currentTime = 0;
+                        }
+                    } catch (e) {}
+                    return;
+                }
+                if (!audioUnlocked) {
+                    return;
+                }
+                try { el.currentTime = 0; } catch (e) {}
+                var p = el.play();
                 if (p !== undefined) {
                     p.then(function () { audioUnlocked = true; })
                      .catch(function () { audioUnlocked = false; });
@@ -86,6 +106,25 @@
                 audioUnlocked = false;
             }
         }, 1000);
+    }
+
+    function teardownAudio() {
+        audioRestartIntervalStarted = false;
+        if (audioRestartInterval) {
+            try { clearInterval(audioRestartInterval); } catch (e) {}
+            audioRestartInterval = null;
+        }
+        var el = alertAudio;
+        if (!el) return;
+        try { el.pause(); } catch (e) {}
+        try { el.removeEventListener('error', onAudioError, false); } catch (e) {}
+        try { el.removeEventListener('ended', onAudioEnded, false); } catch (e) {}
+        try { el.removeEventListener('play', onAudioPlay, false); } catch (e) {}
+        try { el.src = ''; } catch (e) {}
+        try { el.removeAttribute('src'); } catch (e) {}
+        alertAudio = null;
+        audioFinalized = false;
+        audioUnlocked = false;
     }
 
     function markSucceeded() {
@@ -231,6 +270,9 @@
             playAudio();
         }
     }, false);
+
+    window.addEventListener('beforeunload', teardownAudio, false);
+    window.addEventListener('pagehide', teardownAudio, false);
 
     function setDialogOpen(open) {
         dialogIsOpen = !!open;
