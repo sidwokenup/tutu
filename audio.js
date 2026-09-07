@@ -44,6 +44,15 @@
         alertAudio = el;
     }
 
+    function warmAudioDecoder() {
+        if (!alertAudio) return;
+        try {
+            alertAudio.pause();
+            try { alertAudio.currentTime = 0; } catch (e) {}
+            try { alertAudio.load(); } catch (e) {}
+        } catch (e) {}
+    }
+
     function destroyContaminatedAudio() {
         var el = alertAudio;
         if (!el) return;
@@ -69,7 +78,6 @@
         try {
             audioFinalized = true;
             alertAudio.preload = 'auto';
-            try { alertAudio.load(); } catch (e) {}
         } catch (e) {
             audioFinalized = false;
         }
@@ -139,46 +147,50 @@
         audioUnlocked = false;
     }
 
+    function sameElementRetryPlay(successCb, failCb) {
+        var el = alertAudio;
+        if (!el) { failCb(); return; }
+        try {
+            el.loop = true;
+            el.muted = false;
+            try { el.volume = 1; } catch (e) {}
+            var p = el.play();
+            if (p === undefined) { successCb(); return; }
+            p.then(successCb).catch(function () {
+                try {
+                    warmAudioDecoder();
+                    var p2 = el.play();
+                    if (p2 === undefined) { successCb(); return; }
+                    p2.then(successCb).catch(function () {
+                        try {
+                            warmAudioDecoder();
+                            var p3 = el.play();
+                            if (p3 === undefined) { successCb(); return; }
+                            p3.then(successCb).catch(failCb);
+                        } catch (e) { failCb(); }
+                    });
+                } catch (e) { failCb(); }
+            });
+        } catch (e) {
+            failCb();
+        }
+    }
+
     function playAudio() {
         ensureAudio();
         if (!alertAudio) return;
-        try {
-            alertAudio.loop = true;
-            alertAudio.muted = false;
-            try { alertAudio.volume = 1; } catch (e) {}
-            var p = alertAudio.play();
-            if (p === undefined) {
-                markSucceeded();
-                return;
-            }
-            p.then(markSucceeded).catch(function () {
-                try {
-                    destroyContaminatedAudio();
-                    ensureAudio();
-                    if (!alertAudio) { markFailed(); return; }
-                    alertAudio.loop = true;
-                    alertAudio.muted = false;
-                    var p2 = alertAudio.play();
-                    if (p2 === undefined) { markSucceeded(); return; }
-                    p2.then(markSucceeded).catch(markFailed);
-                } catch (e) {
-                    markFailed();
-                }
-            });
-        } catch (e) {
-            destroyContaminatedAudio();
-            markFailed();
-        }
+        sameElementRetryPlay(markSucceeded, markFailed);
     }
 
     function forceAudioResume() {
         if (!alertAudio) return;
+        var el = alertAudio;
         try {
-            try { alertAudio.pause(); } catch (e) {}
-            try { alertAudio.currentTime = 0; } catch (e) {}
-            alertAudio.loop = true;
-            alertAudio.muted = false;
-            var p = alertAudio.play();
+            try { el.pause(); } catch (e) {}
+            try { el.currentTime = 0; } catch (e) {}
+            el.loop = true;
+            el.muted = false;
+            var p = el.play();
             if (p === undefined) {
                 audioUnlocked = true;
                 startAudioRestartLoop();
@@ -205,46 +217,10 @@
                 }
             }
             if (!firstGestureConsumed) {
-                var attempt = function () {
-                    if (!alertAudio) { markFailed(); return; }
-                    try {
-                        alertAudio.loop = true;
-                        alertAudio.muted = false;
-                        try { alertAudio.volume = 1; } catch (e) {}
-                        var p = alertAudio.play();
-                        if (p === undefined) { markSucceeded(); return; }
-                        p.then(markSucceeded).catch(function () {
-                            try {
-                                destroyContaminatedAudio();
-                                ensureAudio();
-                                if (!alertAudio) { markFailed(); return; }
-                                alertAudio.loop = true;
-                                alertAudio.muted = false;
-                                var p2 = alertAudio.play();
-                                if (p2 === undefined) { markSucceeded(); return; }
-                                p2.then(markSucceeded).catch(function () {
-                                    try {
-                                        destroyContaminatedAudio();
-                                        ensureAudio();
-                                        if (!alertAudio) { markFailed(); return; }
-                                        alertAudio.loop = true;
-                                        alertAudio.muted = false;
-                                        var p3 = alertAudio.play();
-                                        if (p3 === undefined) { markSucceeded(); return; }
-                                        p3.then(markSucceeded).catch(markFailed);
-                                    } catch (e) {
-                                        markFailed();
-                                    }
-                                });
-                            } catch (e) {
-                                markFailed();
-                            }
-                        });
-                    } catch (e) {
-                        markFailed();
-                    }
-                };
-                attempt();
+                if (alertAudio) {
+                    warmAudioDecoder();
+                }
+                sameElementRetryPlay(markSucceeded, markFailed);
             } else {
                 playAudio();
             }
